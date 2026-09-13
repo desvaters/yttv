@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root xmlns="urn:schemas-upnp-org:device-1-0">
+  <specVersion><major>1</major><minor>0</minor></specVersion>
+  <device>
+    <deviceType>urn:schemas-upnp-org:device:tvdevice:1</deviceType>
+    <friendlyName>Living room TV</friendlyName>
+    <manufacturer>Amazon</manufacturer>
+    <modelName>AFTMM</modelName>
+    <UDN>uuid:00000000-0000-4000-8000-0000000000aa</UDN>
+  </device>
+</root>

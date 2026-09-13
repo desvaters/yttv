@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<service xmlns="urn:dial-multiscreen-org:schemas:dial" dialVer="2.1">
+  <name>YouTube</name>
+  <options allowStop="true"/>
+  <state>running</state>
+  <link rel="run" href="run"/>
+  <additionalData>
+    <screenId>screen-id-from-dial</screenId>
+    <sessionId>session-1</sessionId>
+  </additionalData>
+</service>

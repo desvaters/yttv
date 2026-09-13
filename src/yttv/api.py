@@ -110,7 +110,7 @@ def _select(cache: Cache, device: Device | str | None) -> Device:
         for d in cache.devices
         if needle in d.label.lower()
         or needle in (d.address or "").lower()
-        or d.screen.screen_id.lower().startswith(needle)
+        or (d.screen is not None and d.screen.screen_id.lower().startswith(needle))
     ]
     if len(matches) == 1:
         return matches[0]
@@ -122,6 +122,10 @@ def _select(cache: Cache, device: Device | str | None) -> Device:
 
 def _fresh_screen(lounge: Lounge, cache: Cache, device: Device) -> Screen:
     """Refresh the lounge token when it is about to expire."""
+    if device.screen is None:
+        raise CastError(
+            f"{device.label} has not told us its screen id yet; is the YouTube app installed on it?"
+        )
     if not device.screen.is_expired(margin_ms=TOKEN_MARGIN_MS):
         return device.screen
     log.info("lounge token for %s is expiring, refreshing", device.label)
@@ -157,21 +161,27 @@ def cast(
     own_lounge = lounge is None
     lounge = lounge or Lounge(name=remote_name())
     try:
-        screen = _fresh_screen(lounge, cache, target)
         try:
             launcher = get_launcher(target.backend)
         except BackendUnavailable as exc:
             raise CastError(str(exc)) from exc
         if launcher is not None:
+            # First, because a launcher may learn or correct the screen id
+            # (DIAL reads it from the running app).
+            before = target.screen
             try:
                 launcher.launch(target, timeout=timeout)
             except Exception as exc:  # backends raise their own kinds
                 raise CastError(f"Could not start YouTube on {target.label}: {exc}") from exc
+            if target.screen is not before:
+                cache.save()
+        screen = _fresh_screen(lounge, cache, target)
         _send(lounge, screen, parsed, queue)
     except SessionError as exc:
         # Maybe the token died early. One refresh, one retry.
         log.info("session with %s failed (%s), refreshing token once", target.label, exc)
         try:
+            assert target.screen is not None
             target.screen = lounge.refresh(target.screen)
             cache.save()
             _send(lounge, target.screen, parsed, queue)
@@ -252,3 +262,36 @@ def attach(
     target.backend_data.update(backend_data)
     cache.save()
     return target
+
+
+def discover(
+    *,
+    timeout: float = 4.0,
+    local_address: str | None = None,
+    hosts: Sequence[str] = (),
+    cache: Cache | None = None,
+) -> list[Device]:
+    """Search the network for DIAL devices and remember them.
+
+    Devices seen before keep their screen and token; only address and
+    description are refreshed. ``hosts`` are probed directly in addition
+    to the multicast search. Returns the devices found in this search.
+    """
+    from .backends import dial
+
+    cache = _open_cache(cache)
+    found = dial.discover(timeout=timeout, local_address=local_address, unicast_hosts=list(hosts))
+    result: list[Device] = []
+    for device in found:
+        usn = device.backend_data.get("unique_service_name", "")
+        known = cache.find_service(usn) if usn else None
+        if known is not None:
+            known.address = device.address
+            known.backend = "dial"
+            known.backend_data.update(device.backend_data)
+            result.append(known)
+        else:
+            result.append(cache.upsert(device))
+    if found:
+        cache.save()
+    return result

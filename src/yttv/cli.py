@@ -4,7 +4,10 @@
     yttv -a URL [URL ...]       append to its queue
     yttv -d bedroom URL         pick a screen by name or address
     yttv -l                     list known screens
+    yttv -s                     search for DIAL devices (Fire TV, WebOS)
     yttv --pair 123456789       link a screen with the code the TV shows
+    yttv --appletv 192.168.1.5  attach an Apple TV to the screen
+    yttv --doctor               why does the search find nothing?
 
 Exit codes: 0 done, 1 something failed (message on stderr), 2 bad usage.
 """
@@ -49,6 +52,21 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("-l", "--list", action="store_true", help="list known screens and exit")
     parser.add_argument(
+        "-s", "--search", action="store_true", help="search the network for DIAL devices, remember them, and list"
+    )
+    parser.add_argument(
+        "-t", "--timeout", type=float, default=4.0, metavar="SECONDS", help="how long to wait for search replies (default 4)"
+    )
+    parser.add_argument(
+        "-i", "--interface", metavar="IP", help="local address to search from, for machines with several networks"
+    )
+    parser.add_argument(
+        "--host", action="append", default=[], metavar="IP", help="also probe this device directly (repeatable); sidesteps multicast"
+    )
+    parser.add_argument(
+        "--doctor", action="store_true", help="diagnose why discovery finds nothing (firewall, multicast) and exit"
+    )
+    parser.add_argument(
         "--pair",
         metavar="CODE",
         help="link a screen with the code from Settings > Link with TV code, then use it",
@@ -91,8 +109,11 @@ def format_device(device: Device, now_ms: int | None = None) -> str:
     where = device.address or "paired by code"
     if device.backend:
         where = f"{where} ({device.backend})"
-    expiry = datetime.fromtimestamp(device.screen.expiration / 1000).strftime("%Y-%m-%d")
-    token = "token expired" if device.screen.is_expired(now_ms) else f"token until {expiry}"
+    if device.screen is None:
+        token = "no screen id yet"
+    else:
+        expiry = datetime.fromtimestamp(device.screen.expiration / 1000).strftime("%Y-%m-%d")
+        token = "token expired" if device.screen.is_expired(now_ms) else f"token until {expiry}"
     return f"{marker} {device.label:<24} {where:<28} {token}"
 
 
@@ -133,6 +154,19 @@ def run(argv: list[str], out=sys.stdout, err=sys.stderr) -> int:
     args = parser.parse_args(argv)
     configure_logging(args.verbose)
 
+    if args.doctor:
+        from . import doctor
+
+        return doctor.run(out, timeout=args.timeout, local_address=args.interface, hosts=args.host)
+    if args.search:
+        found = api.discover(timeout=args.timeout, local_address=args.interface, hosts=args.host)
+        if not found:
+            print("No DIAL device answered. Try --doctor.", file=out)
+        else:
+            for device in found:
+                print(format_device(device), file=out)
+        if not args.videos:
+            return 0
     if args.list:
         return _list(out)
     if not args.pair and not args.appletv and not args.videos:

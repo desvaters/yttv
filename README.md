@@ -11,8 +11,24 @@ yttv https://youtu.be/dQw4w9WgXcQ        # play on the last used screen
 yttv -a ID1 ID2                          # append to its queue, one call for all
 yttv -d bedroom ID                       # pick a screen by name or address
 yttv -l                                  # list known screens
+yttv -s                                  # search for DIAL devices (Fire TV, WebOS)
 yttv --pair 123456789                    # link a screen with the TV's code
+yttv --appletv 192.168.1.5               # attach an Apple TV so yttv can open the app
+yttv --doctor                            # why does the search find nothing?
 ```
+
+Screens paired by code need the YouTube app open on the TV. With a backend
+attached (`--appletv`, or found by `-s`) yttv wakes the TV and brings the
+app to the front first.
+
+## When the search finds nothing
+
+The search is a multicast packet; every device answers with a unicast
+reply from its own address. A stateful firewall on your machine (ufw,
+firewalld) does not connect that reply to the packet you sent and drops it
+silently. `yttv --doctor` sends the searches, counts the replies and, when
+nothing comes back, prints the rule to check and the ufw line that fixes
+it. Cast TVs and Apple TV never answer DIAL searches; that is expected.
 
 Videos are ids or URLs and are always sent together. Sending them one after
 another scrambles the TV's queue.

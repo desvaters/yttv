@@ -21,6 +21,7 @@ from .api import (
     attach,
     cast,
     devices,
+    discover,
     pair,
 )
 from .cache import Cache, Device
@@ -36,5 +37,6 @@ __all__ = [
     "attach",
     "cast",
     "devices",
+    "discover",
     "pair",
 ]

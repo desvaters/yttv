@@ -175,3 +175,34 @@ def test_default_path_honours_xdg(monkeypatch) -> None:
 def test_label_falls_back_to_screen_id() -> None:
     d = Device(screen=Screen("only-id", "tok", 1))
     assert d.label == "only-id"
+
+
+# -- devices without a screen (discovered, never launched) -----------------
+
+
+def test_screenless_device_round_trips_and_labels_by_friendly_name(cache: Cache) -> None:
+    d = Device(screen=None, backend="dial", address="10.0.0.9", backend_data={"friendly_name": "Fire TV", "unique_service_name": "uuid:x"})
+    cache.devices = [d]
+    cache.save()
+    loaded = Cache(path=cache.path, ytcast_path=cache.ytcast_path).load()
+    assert loaded == [d]
+    assert loaded[0].label == "Fire TV"
+    assert json.loads(cache.path.read_text())["devices"][0]["screen"] is None
+
+
+def test_upsert_and_last_used_match_screenless_devices_by_service(cache: Cache) -> None:
+    a = Device(screen=None, backend="dial", backend_data={"unique_service_name": "uuid:a"})
+    b = Device(screen=None, backend="dial", backend_data={"unique_service_name": "uuid:b"})
+    cache.devices = [a, b]
+    cache.upsert(Device(screen=None, backend="dial", address="new", backend_data={"unique_service_name": "uuid:a"}))
+    assert [d.backend_data["unique_service_name"] for d in cache.devices] == ["uuid:a", "uuid:b"]
+    assert cache.devices[0].address == "new"
+    cache.set_last_used(b)
+    assert cache.last_used() is b
+    assert cache.find_service("uuid:a") is cache.devices[0]
+    assert cache.find_service("nope") is None
+    assert cache.find("anything") is None
+
+
+def test_label_without_anything_falls_back_to_address() -> None:
+    assert Device(screen=None, address="1.2.3.4").label == "1.2.3.4"

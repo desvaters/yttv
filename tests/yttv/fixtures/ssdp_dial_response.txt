@@ -1,0 +1,9 @@
+HTTP/1.1 200 OK
+LOCATION: http://192.168.178.50:8060/dd.xml
+CACHE-CONTROL: max-age=1800
+EXT:
+SERVER: Linux/4.9 UPnP/1.0 Fire TV/1.0
+ST: urn:dial-multiscreen-org:service:dial:1
+USN: uuid:00000000-0000-4000-8000-0000000000aa::urn:dial-multiscreen-org:service:dial:1
+WAKEUP: MAC=aa:bb:cc:dd:ee:ff;Timeout=10
+

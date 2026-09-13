@@ -44,7 +44,7 @@ class Device:
     to reach it. ``backend`` names the module (``dial``, ``cast``,
     ``appletv``); ``backend_data`` is that backend's own bag of details."""
 
-    screen: Screen
+    screen: Screen | None
     last_used: bool = False
     backend: str | None = None
     address: str | None = None
@@ -54,16 +54,20 @@ class Device:
     def label(self) -> str:
         """Something a human recognises: the device's friendly name if a
         backend knows one, else the screen's name from pairing."""
-        return str(self.backend_data.get("friendly_name") or self.screen.name or self.screen.screen_id)
+        screen_name = self.screen.name or self.screen.screen_id if self.screen else ""
+        return str(self.backend_data.get("friendly_name") or screen_name or self.address or "?")
 
     def to_json(self) -> dict[str, Any]:
-        return {
-            "screen": {
+        screen = None
+        if self.screen is not None:
+            screen = {
                 "screen_id": self.screen.screen_id,
                 "lounge_token": self.screen.lounge_token,
                 "expiration": self.screen.expiration,
                 "name": self.screen.name,
-            },
+            }
+        return {
+            "screen": screen,
             "last_used": self.last_used,
             "backend": self.backend,
             "address": self.address,
@@ -74,13 +78,16 @@ class Device:
     def from_json(cls, data: dict[str, Any]) -> Device:
         try:
             s = data["screen"]
-            return cls(
-                screen=Screen(
+            screen = None
+            if s is not None:
+                screen = Screen(
                     screen_id=str(s["screen_id"]),
                     lounge_token=str(s["lounge_token"]),
                     expiration=int(s["expiration"]),
                     name=str(s.get("name", "")),
-                ),
+                )
+            return cls(
+                screen=screen,
                 last_used=bool(data.get("last_used", False)),
                 backend=data.get("backend"),
                 address=data.get("address"),
@@ -135,16 +142,35 @@ class Cache:
     # -- queries and updates ----------------------------------------------------
 
     def find(self, screen_id: str) -> Device | None:
-        return next((d for d in self.devices if d.screen.screen_id == screen_id), None)
+        return next(
+            (d for d in self.devices if d.screen is not None and d.screen.screen_id == screen_id),
+            None,
+        )
+
+    def find_service(self, unique_service_name: str) -> Device | None:
+        """A device discovered before, by its SSDP unique service name."""
+        return next(
+            (d for d in self.devices if d.backend_data.get("unique_service_name") == unique_service_name),
+            None,
+        )
+
+    def _same(self, a: Device, b: Device) -> bool:
+        if a is b:
+            return True
+        if a.screen is not None and b.screen is not None:
+            return a.screen.screen_id == b.screen.screen_id
+        usn_a, usn_b = a.backend_data.get("unique_service_name"), b.backend_data.get("unique_service_name")
+        return bool(usn_a) and usn_a == usn_b
 
     def last_used(self) -> Device | None:
         return next((d for d in self.devices if d.last_used), None)
 
     def upsert(self, device: Device) -> Device:
-        """Insert ``device`` or replace the entry with the same screen id.
-        Does not save."""
+        """Insert ``device`` or replace the entry for the same screen (or, for
+        discovered devices without a screen yet, the same service). Does
+        not save."""
         for i, existing in enumerate(self.devices):
-            if existing.screen.screen_id == device.screen.screen_id:
+            if self._same(existing, device):
                 self.devices[i] = device
                 return device
         self.devices.append(device)
@@ -153,7 +179,7 @@ class Cache:
     def set_last_used(self, device: Device) -> None:
         """Mark ``device`` as the one to use by default. Does not save."""
         for d in self.devices:
-            d.last_used = d.screen.screen_id == device.screen.screen_id
+            d.last_used = self._same(d, device)
 
 
 def _read(path: Path) -> list[Device]:

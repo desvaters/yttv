@@ -193,3 +193,47 @@ def test_appletv_option_reports_pairing_failure(stub: Stub, monkeypatch) -> None
 
     monkeypatch.setattr(appletv, "ensure_paired", fail)
     assert cli.main(["--appletv", "1.2.3.4"]) == 1
+
+
+def test_search_lists_found_devices_and_can_play(stub: Stub, monkeypatch) -> None:
+    from ytlounge import Screen as _Screen
+
+    found = [Device(None, backend="dial", address="10.0.0.9", backend_data={"friendly_name": "Fire TV"})]
+    seen: dict = {}
+
+    def discover(**kw):
+        seen.update(kw)
+        return found
+
+    monkeypatch.setattr(cli.api, "discover", discover)
+    code, out, _ = run(["-s", "-t", "2", "-i", "10.0.0.5", "--host", "10.0.0.9"])
+    assert code == 0
+    assert seen == {"timeout": 2.0, "local_address": "10.0.0.5", "hosts": ["10.0.0.9"]}
+    assert out.splitlines() == ["  Fire TV                  10.0.0.9 (dial)              no screen id yet"]
+    assert stub.calls == []
+
+    code, out, _ = run(["-s", "dQw4w9WgXcQ"])
+    assert code == 0 and stub.calls == [("cast", ["dQw4w9WgXcQ"], False, None)]
+
+
+def test_search_without_result_points_to_doctor(stub: Stub, monkeypatch) -> None:
+    monkeypatch.setattr(cli.api, "discover", lambda **kw: [])
+    code, out, _ = run(["--search"])
+    assert code == 0 and "--doctor" in out
+
+
+def test_doctor_option_runs_the_doctor(stub: Stub, monkeypatch) -> None:
+    from yttv import doctor
+
+    seen: dict = {}
+
+    def fake_run(out, **kw):
+        seen.update(kw)
+        print("diagnosis", file=out)
+        return 1
+
+    monkeypatch.setattr(doctor, "run", fake_run)
+    code, out, _ = run(["--doctor", "--host", "1.2.3.4", "-t", "1"])
+    assert code == 1 and out == "diagnosis\n"
+    assert seen == {"timeout": 1.0, "local_address": None, "hosts": ["1.2.3.4"]}
+    assert stub.calls == []

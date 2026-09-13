@@ -300,3 +300,54 @@ def test_cast_reports_missing_backend_dependency(cache: Cache, lounge: Lounge, m
     cache.devices[0].backend = "appletv"
     with pytest.raises(yttv.CastError, match="needs pyatv"):
         yttv.cast([ID1], cache=cache, lounge=lounge)
+
+
+# -- discover / screenless devices -------------------------------------------
+
+
+def test_discover_merges_into_cache_keeping_known_screens(cache: Cache, monkeypatch) -> None:
+    from yttv.backends import dial
+
+    known = Device(Screen("screen-d", "TOK", FAR_FUTURE, "Living room TV"), backend="dial", address="10.0.0.1",
+                   backend_data={"unique_service_name": "uuid:d", "application_url": "http://old/apps/"})
+    cache.devices.append(known)
+    cache.save()
+    fresh = [
+        Device(None, backend="dial", address="10.0.0.2", backend_data={"unique_service_name": "uuid:d", "application_url": "http://new/apps/", "friendly_name": "Living room TV"}),
+        Device(None, backend="dial", address="10.0.0.3", backend_data={"unique_service_name": "uuid:e", "friendly_name": "Other TV"}),
+    ]
+    monkeypatch.setattr(dial, "discover", lambda **kw: fresh)
+
+    found = yttv.discover(cache=cache)
+    assert [d.label for d in found] == ["Living room TV", "Other TV"]
+    merged = found[0]
+    assert merged.screen == known.screen, "screen and token survive a re-discovery"
+    assert merged.address == "10.0.0.2" and merged.backend_data["application_url"] == "http://new/apps/"
+
+    reloaded = Cache(path=cache.path, ytcast_path=cache.ytcast_path)
+    reloaded.load()
+    assert len(reloaded.devices) == 4
+
+
+def test_cast_to_screenless_device_takes_screen_from_launcher(cache: Cache, lounge: Lounge, server: FakeLoungeServer) -> None:
+    class Launcher:
+        def launch(self, device: Device, *, timeout: float) -> None:
+            device.screen = Screen("screen-new", "", 0, "Fire TV")
+
+    register("fake", Launcher())
+    cache.devices = [Device(None, backend="fake", last_used=True, backend_data={"friendly_name": "Fire TV"})]
+    cache.save()
+    used = yttv.cast([ID1], cache=cache, lounge=lounge)
+    paths = [r.url.path.rsplit("/", 1)[1] for r in server.requests]
+    assert paths == ["get_lounge_token_batch", "bind", "bind"], "empty token is refreshed before use"
+    assert used.screen.lounge_token == "REFRESHED"
+    reloaded = Cache(path=cache.path, ytcast_path=cache.ytcast_path)
+    reloaded.load()
+    assert reloaded.devices[0].screen.screen_id == "screen-new"
+
+
+def test_cast_to_screenless_device_without_launcher_explains(cache: Cache, lounge: Lounge) -> None:
+    cache.devices = [Device(None, last_used=True, backend_data={"friendly_name": "Mystery"})]
+    cache.save()
+    with pytest.raises(yttv.CastError, match="screen id yet"):
+        yttv.cast([ID1], cache=cache, lounge=lounge)
