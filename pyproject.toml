@@ -52,6 +52,12 @@ Issues = "https://github.com/desvaters/yttv/issues"
 [tool.hatch.build.targets.wheel]
 packages = ["src/ytlounge", "src/yttv"]
 
+# The sdist is what people read; keep the reference implementation and the
+# private working notes out of it (both are git-excluded locally, which
+# hatch does not see).
+[tool.hatch.build.targets.sdist]
+exclude = ["/upstream", "/NOTES.md", "/HANDOFF.md", "/.pixi", "/pixi.lock", "/.claude"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
