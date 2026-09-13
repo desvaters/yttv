@@ -134,7 +134,10 @@ def screen_id(host: str, *, timeout: float) -> tuple[str, Info]:
         log.info("asking %s for its YouTube screen id", info.friendly_name or host)
         found = controller.request_screen_id(min(timeout, STATUS_TIMEOUT))
         if not found:
-            raise CastError(f"{info.friendly_name or host} gave no screen id; is the YouTube app installed?")
+            raise CastError(
+                f"{info.friendly_name or host} gave no screen id. Is the YouTube app installed, "
+                "or is the TV showing a dialog (Samsung asks to accept Cast terms on first use)?"
+            )
         return found, info
     finally:
         cast.disconnect()
