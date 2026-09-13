@@ -10,7 +10,7 @@ readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.11"
-authors = [{ name = "Maxi" }]
+authors = [{ name = "desvaters", email = "pypi@desvate.rs" }]
 keywords = ["youtube", "tv", "cast", "chromecast", "apple-tv", "dial", "lounge"]
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
