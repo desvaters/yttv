@@ -73,9 +73,9 @@ Three ways to reach a TV, one protocol to drive it:
 The Lounge API is the unofficial protocol behind the "Play on TV" button in
 the phone app: pair with a screen, play a video, append to the queue. Each
 backend's only job is to bring the YouTube app up and obtain the screen's
-id; from there everything goes through `ytlounge`, the second package in
-this repository. It knows nothing about devices, caches or files and is
-kept extractable into its own distribution.
+id; from there everything goes through
+[ytlounge](https://github.com/desvaters/ytlounge), a separate package by
+the same author that knows nothing about devices, caches or files.
 
 The Lounge API is not documented and can change at any time. If it does,
 expect this to break the same way for every tool built on it.
@@ -108,7 +108,7 @@ multicast.
 
 The Lounge protocol was reverse-engineered independently by several
 people; nothing here is derived from their code, but their write-ups made
-the protocol knowable. yttv learned it from Marco Lucidi's
+the protocol knowable. yttv and ytlounge learned it from Marco Lucidi's
 [ytcast](https://github.com/MarcoLucidi01/ytcast) (Go), whose behaviour
 served as the reference for verifying requests on the wire, and, through
 it, from the sources ytcast itself credits:
@@ -132,5 +132,5 @@ pixi run test-device       # needs a real TV on the network
 pixi run check             # build wheel and sdist, validate the metadata
 ```
 
-A test guards the boundary between `ytlounge` and `yttv`: importing the
-core must not pull in any device module, at runtime or in the source.
+The pixi environments take `ytlounge` from a checkout in `../ytlounge`, so
+both can be changed together; a released `yttv` gets it from PyPI.

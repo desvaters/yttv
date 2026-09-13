@@ -16,7 +16,7 @@ from ytlounge import Lounge, Screen
 from yttv.backends import register, _LAUNCHERS
 from yttv.cache import Cache, Device
 
-FIXTURES = Path(__file__).parent.parent / "ytlounge" / "fixtures"
+FIXTURES = Path(__file__).parent / "fixtures"
 SESSION_BODY = (FIXTURES / "bind_session.txt").read_text()
 ACK_BODY = (FIXTURES / "bind_command.txt").read_text()
 FAR_FUTURE = 4_000_000_000_000

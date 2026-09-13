@@ -44,6 +44,9 @@ python = "3.13.*"
 # changes under src/ are visible without reinstalling; without this line
 # `import yttv` fails inside the environment.
 yttv = { path = ".", editable = true, extras = ["all"] }
+# The protocol core from its own checkout next door, editable, so both can
+# be developed together. Released installs get it from PyPI instead.
+ytlounge = { path = "../ytlounge", editable = true }
 
 # ---------------------------------------------------------------------------
 # py314: the newest Python without any backend extra. Proves that ytlounge
@@ -54,6 +57,7 @@ python = "3.14.*"
 
 [feature.py314.pypi-dependencies]
 yttv = { path = ".", editable = true }
+ytlounge = { path = "../ytlounge", editable = true }
 
 [environments]
 default = { features = ["backends"] }
