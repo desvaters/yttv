@@ -31,10 +31,9 @@ build = "python -m build"
 check = { cmd = "twine check dist/*", depends-on = ["build"] }
 
 # ---------------------------------------------------------------------------
-# backends: Python 3.13 with every backend extra. 3.13 and not 3.14 because
-# pyatv (Apple TV backend) breaks on 3.14, see NOTES.md §5. With 3.14 the
-# appletv extra would silently resolve to nothing (its marker excludes it)
-# and every Apple TV test would error with ModuleNotFoundError: pyatv.
+# backends: Python 3.13 with every backend extra. 3.13 rather than 3.14 only
+# to keep one environment on the version most users are on; every backend works
+# on 3.14 too, which core314 below and the appletv extra both cover.
 # ---------------------------------------------------------------------------
 [feature.backends.dependencies]
 python = "3.13.*"

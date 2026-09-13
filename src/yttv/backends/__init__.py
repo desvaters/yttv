@@ -20,7 +20,7 @@ KNOWN = ("appletv", "cast", "dial")
 # Per backend: the pip extra that provides it, the import it needs, and a
 # caveat worth stating in the error.
 _EXTRAS = {
-    "appletv": ("appletv", "pyatv", "; pyatv needs Python < 3.14"),
+    "appletv": ("appletv", "pyatv", ""),
     "cast": ("cast", "pychromecast", ""),
 }
 

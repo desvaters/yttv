@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "yttv"
-version = "0.1.0"
+version = "0.1.1"
 description = "Play YouTube videos on a TV: Cast, Apple TV and DIAL devices, all driven through the YouTube Lounge API"
 readme = "README.md"
 license = "MIT"
@@ -32,10 +32,11 @@ dependencies = ["ytlounge>=0.1,<0.2", "httpx>=0.27"]
 # pychromecast. Only the launch and screenId retrieval come from here; play and
 # queue always go through ytlounge.
 cast = ["pychromecast>=14"]
-# Apple TV: app launch through the Companion protocol. pyatv does not run on
-# Python 3.14 (asyncio.get_event_loop() raises), which is why this is an extra
-# and not a hard dependency: it must not cap the Python version of the core.
-appletv = ["pyatv>=0.18; python_version < '3.14'"]
+# Apple TV: app launch through the Companion protocol. An extra rather than a
+# hard dependency because pyatv is heavy — it pulls cryptography, aiohttp,
+# protobuf and miniaudio — and most people need only one of the three backends.
+# No Python cap: verified on 3.14 against a real Apple TV (see NOTES.md §5).
+appletv = ["pyatv>=0.18"]
 all = ["yttv[cast,appletv]"]
 
 [project.scripts]

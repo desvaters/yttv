@@ -1,5 +1,5 @@
-"""Apple TV backend against a fake pyatv. Skipped where pyatv is missing
-(Python 3.14): that is exactly why it is an extra."""
+"""Apple TV backend against a fake pyatv. Skipped where pyatv is missing,
+which is the point of it being an extra — not a version limit."""
 
 from __future__ import annotations
 

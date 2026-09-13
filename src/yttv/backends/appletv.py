@@ -1,8 +1,8 @@
 """Apple TV backend via the Companion protocol, built on pyatv.
 
-Requires the ``appletv`` extra and Python < 3.14. Companion is the only
-pyatv protocol that can launch an app; it needs a one-time PIN pairing
-whose credentials pyatv keeps in ``~/.pyatv.conf``.
+Requires the ``appletv`` extra. Companion is the only pyatv protocol that
+can launch an app; it needs a one-time PIN pairing whose credentials pyatv
+keeps in ``~/.pyatv.conf``.
 
 A Lounge command alone does not do the job on tvOS: it brings the app to
 its start page but plays nothing. Launching through Companion first, then

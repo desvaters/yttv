@@ -1601,7 +1601,7 @@ packages:
   - ytlounge>=0.1,<0.2
   - httpx>=0.27
   - pychromecast>=14 ; extra == 'cast'
-  - pyatv>=0.18 ; python_full_version < '3.14' and extra == 'appletv'
+  - pyatv>=0.18 ; extra == 'appletv'
   - yttv[cast,appletv] ; extra == 'all'
   requires_python: '>=3.11'
 - pypi: https://files.pythonhosted.org/packages/0a/43/8e55ae7538ba5f28ccb3c845c6dd4549cf7016d5992e5326512519107cdd/yarl-1.24.5-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl

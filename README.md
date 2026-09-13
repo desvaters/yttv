@@ -15,7 +15,7 @@ yttv -l                                  # list known screens
 ```bash
 pip install 'yttv[all]'        # every backend
 pip install 'yttv[cast]'       # Cast TVs only
-pip install 'yttv[appletv]'    # Apple TV only (needs Python < 3.14, see below)
+pip install 'yttv[appletv]'    # Apple TV only
 pip install yttv               # DIAL and screens paired by code; only httpx
 ```
 
@@ -82,9 +82,12 @@ expect this to break the same way for every tool built on it.
 
 ### Python versions
 
-The core runs on Python 3.11 and newer, 3.14 included. The Apple TV backend
-depends on pyatv, which does not run on 3.14 yet; its extra is skipped
-there and `yttv` says so when an Apple TV is used.
+Python 3.11 and newer, 3.14 included — core and all three backends.
+
+The backends are extras because each pulls a sizeable dependency tree, not
+because of any version limit: install `yttv[appletv]`, `yttv[cast]` or
+`yttv[all]` for the ones you need. Asking for a backend you did not install
+tells you which extra is missing.
 
 ## When the search finds nothing
 
