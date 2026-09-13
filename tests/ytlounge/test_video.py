@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 from ytlounge.video import Video, parse_start_time, parse_video
@@ -83,3 +85,22 @@ def test_parse_start_time(text: str, seconds: int) -> None:
 def test_parse_start_time_rejects(text: str) -> None:
     with pytest.raises(ValueError):
         parse_start_time(text)
+
+
+def _gist_cases() -> list[tuple[str, str]]:
+    path = Path(__file__).parent / "fixtures" / "youtube_urls.txt"
+    cases = []
+    for line in path.read_text().splitlines():
+        if line and not line.startswith("#"):
+            video_id, url = line.split(" ", 1)
+            cases.append((video_id, url))
+    return cases
+
+
+@pytest.mark.parametrize(("video_id", "url"), _gist_cases())
+def test_every_url_form_from_the_gist(video_id: str, url: str) -> None:
+    assert parse_video(url).id == video_id
+
+
+def test_fragment_start_time() -> None:
+    assert parse_video("https://www.youtube.com/watch?v=0zM3nApSvMg#t=0m10s") == Video("0zM3nApSvMg", 10)

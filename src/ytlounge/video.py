@@ -58,22 +58,27 @@ def parse_video(text: str) -> Video:
 
     Raises ``ValueError`` when no video id can be found.
     """
-    text = text.strip()
+    text = text.strip().replace("&amp;", "&")
     if VIDEO_ID.match(text):
         return Video(text)
 
     url = urlsplit(text if "://" in text else "https://" + text)
     host = (url.hostname or "").lower()
     query = parse_qs(url.query, keep_blank_values=False)
+    # A `#t=` fragment is the old way of giving a start time.
+    query.update(parse_qs(url.fragment, keep_blank_values=False))
     segments = [s for s in url.path.split("/") if s]
 
     video_id: str | None = None
     if host in _SHORT_HOSTS:
-        video_id = segments[0] if segments else None
+        # `youtu.be/ID&feature=x` (no `?`) exists in the wild: cut at `&`.
+        video_id = segments[0].split("&", 1)[0] if segments else None
     elif host in _YOUTUBE_HOSTS:
         if segments and segments[0] == "attribution_link" and query.get("u"):
             # The real URL is nested, percent-encoded, in the `u` parameter.
             return parse_video("https://www.youtube.com" + unquote(query["u"][0]))
+        if segments and segments[0] == "oembed" and query.get("url"):
+            return parse_video(unquote(query["url"][0]))
         if query.get("v"):
             video_id = query["v"][0]
         elif query.get("vi"):
