@@ -1,0 +1,39 @@
+[
+  {
+    "Device": null,
+    "Remote": {
+      "ScreenId": "screen-id-appletv",
+      "Name": "maxi@denkbrett",
+      "LoungeToken": "TOKEN-APPLETV",
+      "Expiration": 1790258282494,
+      "SId": "SIDSIDSIDSIDSIDS",
+      "GSessionId": "GSESSIONGSESSIONGSESSIONGSESSION",
+      "DeviceId": "00000000-0000-4000-8000-000000000001",
+      "ScreenName": "YouTube on TV"
+    },
+    "LastUsed": true
+  },
+  {
+    "Device": {
+      "UniqueServiceName": "uuid:00000000-0000-4000-8000-0000000000aa::urn:dial-multiscreen-org:service:dial:1",
+      "Location": "http://192.168.178.50:8060/dd.xml",
+      "ApplicationUrl": "http://192.168.178.50:8060/apps/",
+      "FriendlyName": "Living room TV",
+      "Wakeup": {
+        "Mac": "aa:bb:cc:dd:ee:ff",
+        "Timeout": 10000000000
+      }
+    },
+    "Remote": {
+      "ScreenId": "screen-id-dial",
+      "Name": "maxi@denkbrett",
+      "LoungeToken": "TOKEN-DIAL",
+      "Expiration": "1790258282494",
+      "SId": "",
+      "GSessionId": "",
+      "DeviceId": "00000000-0000-4000-8000-0000000000bb",
+      "ScreenName": "YouTube on TV"
+    },
+    "LastUsed": false
+  }
+]
