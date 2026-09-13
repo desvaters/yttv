@@ -24,24 +24,25 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
 
-      # Build with the same toolchain as locally, pinned by pixi.lock, so a
-      # release cannot silently differ from what `pixi run check` produced.
-      - uses: prefix-dev/setup-pixi@v0.10.2
+      - uses: actions/setup-python@v7.0.0
         with:
-          environments: default
+          python-version: "3.13"
 
-      # A tag that disagrees with pyproject.toml would publish a version that
-      # no commit in this repository corresponds to. Fail before the upload,
-      # because a PyPI version is spent for good once it is taken.
+      # Deliberately not pixi: the development environment installs the
+      # neighbouring ytlounge checkout by path, which does not exist on a
+      # runner that only checks out this repository. The release build does
+      # not need it — hatchling builds from pyproject.toml alone.
       - name: Tag matches the version in pyproject.toml
         run: |
           tag="${GITHUB_REF_NAME#v}"
-          version="$(pixi run --frozen python -c 'import tomllib, pathlib; print(tomllib.loads(pathlib.Path("pyproject.toml").read_text())["project"]["version"])')"
+          version="$(python -c 'import tomllib, pathlib; print(tomllib.loads(pathlib.Path("pyproject.toml").read_text())["project"]["version"])')"
           echo "tag=$tag  pyproject=$version"
           test "$tag" = "$version"
 
-      # Builds wheel and sdist into dist/ and runs twine check over both.
+      # Wheel and sdist into dist/, then the same metadata check PyPI runs.
       - name: Build and validate
-        run: pixi run --frozen check
+        run: |
+          pipx run build
+          pipx run twine check dist/*
 
       - uses: pypa/gh-action-pypi-publish@v1.14.2
