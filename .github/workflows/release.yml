@@ -1,0 +1,47 @@
+# Publishes to PyPI through Trusted Publishing: PyPI hands out a short-lived
+# upload token to this workflow, so no API token is stored anywhere. The
+# publisher registered on PyPI names this file and the environment below —
+# rename either and the upload stops working.
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions: {}
+
+jobs:
+  pypi:
+    name: Build and publish
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      contents: read
+      # The one permission Trusted Publishing needs: it lets the job ask
+      # GitHub for the signed token that proves which workflow is running.
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      # Build with the same toolchain as locally, pinned by pixi.lock, so a
+      # release cannot silently differ from what `pixi run check` produced.
+      - uses: prefix-dev/setup-pixi@v0.10.2
+        with:
+          environments: default
+
+      # A tag that disagrees with pyproject.toml would publish a version that
+      # no commit in this repository corresponds to. Fail before the upload,
+      # because a PyPI version is spent for good once it is taken.
+      - name: Tag matches the version in pyproject.toml
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          version="$(pixi run --frozen python -c 'import tomllib, pathlib; print(tomllib.loads(pathlib.Path("pyproject.toml").read_text())["project"]["version"])')"
+          echo "tag=$tag  pyproject=$version"
+          test "$tag" = "$version"
+
+      # Builds wheel and sdist into dist/ and runs twine check over both.
+      - name: Build and validate
+        run: pixi run --frozen check
+
+      - uses: pypa/gh-action-pypi-publish@v1.14.2
