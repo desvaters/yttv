@@ -1,0 +1,17 @@
+# Keeps the pinned action versions in .github/workflows/ from going stale.
+# Only github-actions: the Python dependencies in pyproject.toml carry open
+# lower bounds (httpx>=0.27 and friends), which Dependabot would never raise
+# anyway, and a library should not pin them.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      # Monthly, not weekly: this repository sees a handful of releases a
+      # year, and a PR per action per week would be noise.
+      interval: monthly
+    groups:
+      # One pull request for all action bumps instead of three.
+      actions:
+        patterns:
+          - "*"
