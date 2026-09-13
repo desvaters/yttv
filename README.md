@@ -14,12 +14,14 @@ yttv -l                                  # list known screens
 yttv -s                                  # search for DIAL devices (Fire TV, WebOS)
 yttv --pair 123456789                    # link a screen with the TV's code
 yttv --appletv 192.168.1.5               # attach an Apple TV so yttv can open the app
+yttv --cast 192.168.1.6                  # add a Cast TV (Chromecast, Samsung), no code needed
 yttv --doctor                            # why does the search find nothing?
 ```
 
 Screens paired by code need the YouTube app open on the TV. With a backend
-attached (`--appletv`, or found by `-s`) yttv wakes the TV and brings the
-app to the front first.
+attached (`--appletv`, `--cast`, or found by `-s`) yttv wakes the TV and
+brings the app to the front first. The first cast to a Samsung TV makes it
+show a terms-of-use dialog for Cast; accept it once, then try again.
 
 ## When the search finds nothing
 

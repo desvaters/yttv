@@ -264,6 +264,32 @@ def attach(
     return target
 
 
+def add_device(
+    backend: str,
+    address: str,
+    *,
+    cache: Cache | None = None,
+    **backend_data: object,
+) -> Device:
+    """Remember a device that needs no pairing code: its backend delivers the
+    screen id at cast time (Cast, DIAL). Re-adding the same device (by
+    identity) updates it and keeps its screen."""
+    if backend not in KNOWN:
+        raise YttvError(f"Unknown backend {backend!r}; one of {', '.join(KNOWN)}.")
+    cache = _open_cache(cache)
+    fresh = Device(screen=None, backend=backend, address=address, backend_data=dict(backend_data))
+    known = cache.find_service(fresh.identity) if fresh.identity else None
+    if known is not None:
+        known.backend = backend
+        known.address = address
+        known.backend_data.update(backend_data)
+        device = known
+    else:
+        device = cache.upsert(fresh)
+    cache.save()
+    return device
+
+
 def discover(
     *,
     timeout: float = 4.0,

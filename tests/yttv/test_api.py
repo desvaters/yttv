@@ -351,3 +351,21 @@ def test_cast_to_screenless_device_without_launcher_explains(cache: Cache, loung
     cache.save()
     with pytest.raises(yttv.CastError, match="screen id yet"):
         yttv.cast([ID1], cache=cache, lounge=lounge)
+
+
+# -- add_device -------------------------------------------------------------
+
+
+def test_add_device_creates_screenless_entry_and_updates_by_identity(cache: Cache) -> None:
+    d = yttv.add_device("cast", "192.168.178.69", cache=cache, cast_uuid="u1", friendly_name="Samsung-TV")
+    assert d.screen is None and d.backend == "cast" and d.label == "Samsung-TV"
+    assert len(cache.devices) == 3
+
+    d.screen = Screen("s-cast", "tok", FAR_FUTURE, "Samsung-TV")
+    cache.save()
+    again = yttv.add_device("cast", "192.168.178.70", cache=cache, cast_uuid="u1", model="U8000F")
+    assert again.address == "192.168.178.70" and again.screen.screen_id == "s-cast"
+    assert again.backend_data["model"] == "U8000F"
+    assert len(cache.devices) == 3
+    with pytest.raises(yttv.YttvError, match="Unknown backend"):
+        yttv.add_device("toaster", "1.2.3.4", cache=cache)

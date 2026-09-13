@@ -7,6 +7,7 @@
     yttv -s                     search for DIAL devices (Fire TV, WebOS)
     yttv --pair 123456789       link a screen with the code the TV shows
     yttv --appletv 192.168.1.5  attach an Apple TV to the screen
+    yttv --cast 192.168.1.6     add a Cast TV (Chromecast, Samsung)
     yttv --doctor               why does the search find nothing?
 
 Exit codes: 0 done, 1 something failed (message on stderr), 2 bad usage.
@@ -78,6 +79,12 @@ def build_parser() -> argparse.ArgumentParser:
         "so yttv can bring the YouTube app to the front before playing",
     )
     parser.add_argument(
+        "--cast",
+        metavar="HOST",
+        help="add the Cast TV at HOST (Chromecast, Samsung Tizen); no code needed, it hands over "
+        "its screen id when YouTube starts. With -d, attach it to that screen instead",
+    )
+    parser.add_argument(
         "-v",
         "--verbose",
         action="count",
@@ -92,6 +99,11 @@ def configure_logging(verbosity: int) -> None:
     """-v: our own INFO. -vv: DEBUG everywhere, including httpx's request
     lines. Those carry the lounge token in the URL, so httpx stays quiet
     unless explicitly asked."""
+    if verbosity < 2:
+        # pychromecast complains about its own deprecated internals and about
+        # a port it cannot reach on some TVs; neither is actionable here.
+        for name in ("pychromecast.dial", "pychromecast.discovery"):
+            logging.getLogger(name).setLevel(logging.CRITICAL)
     if verbosity <= 0:
         return
     level = logging.DEBUG if verbosity > 1 else logging.INFO
@@ -149,6 +161,31 @@ def _attach_appletv(host: str, device: Device | str | None, out) -> Device:
     return attached
 
 
+def _add_cast(host: str, device: Device | str | None, out) -> Device:
+    """Probe the Cast device, then add it (or attach it to a chosen screen)."""
+    from .backends import BackendUnavailable, get_launcher
+
+    try:
+        get_launcher("cast")
+    except BackendUnavailable as exc:
+        raise api.YttvError(str(exc)) from exc
+    from .backends import cast as cast_backend
+
+    try:
+        info = cast_backend.probe(host)
+    except cast_backend.CastError as exc:
+        raise api.CastError(f"Cast device at {host}: {exc}") from exc
+    data = {"cast_uuid": info.uuid, "friendly_name": info.friendly_name}
+    if info.model:
+        data["model"] = info.model  # never overwrite a known model with nothing
+    if device is None:
+        added = api.add_device("cast", host, **data)
+    else:
+        added = api.attach(device, "cast", host, **data)
+    print(f"{added.label} ({info.model or 'Cast'}) at {host} added.", file=out)
+    return added
+
+
 def run(argv: list[str], out=sys.stdout, err=sys.stderr) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -169,7 +206,7 @@ def run(argv: list[str], out=sys.stdout, err=sys.stderr) -> int:
             return 0
     if args.list:
         return _list(out)
-    if not args.pair and not args.appletv and not args.videos:
+    if not args.pair and not args.appletv and not args.cast and not args.videos:
         parser.print_usage(err)
         print("yttv: give a video to play, -l to list screens, or --pair CODE", file=err)
         return 2
@@ -181,6 +218,8 @@ def run(argv: list[str], out=sys.stdout, err=sys.stderr) -> int:
         device = paired
     if args.appletv:
         device = _attach_appletv(args.appletv, device, out)
+    if args.cast:
+        device = _add_cast(args.cast, device, out)
     if not args.videos:
         return 0
 

@@ -51,6 +51,12 @@ class Device:
     backend_data: dict[str, Any] = field(default_factory=dict)
 
     @property
+    def identity(self) -> str | None:
+        """What tells two screenless devices apart: the SSDP unique service
+        name for DIAL, the device uuid for Cast."""
+        return self.backend_data.get("unique_service_name") or self.backend_data.get("cast_uuid")
+
+    @property
     def label(self) -> str:
         """Something a human recognises: the device's friendly name if a
         backend knows one, else the screen's name from pairing."""
@@ -147,20 +153,17 @@ class Cache:
             None,
         )
 
-    def find_service(self, unique_service_name: str) -> Device | None:
-        """A device discovered before, by its SSDP unique service name."""
-        return next(
-            (d for d in self.devices if d.backend_data.get("unique_service_name") == unique_service_name),
-            None,
-        )
+    def find_service(self, identity: str) -> Device | None:
+        """A device seen before, by its backend identity (SSDP unique
+        service name, Cast uuid)."""
+        return next((d for d in self.devices if d.identity == identity), None)
 
     def _same(self, a: Device, b: Device) -> bool:
         if a is b:
             return True
         if a.screen is not None and b.screen is not None:
             return a.screen.screen_id == b.screen.screen_id
-        usn_a, usn_b = a.backend_data.get("unique_service_name"), b.backend_data.get("unique_service_name")
-        return bool(usn_a) and usn_a == usn_b
+        return bool(a.identity) and a.identity == b.identity
 
     def last_used(self) -> Device | None:
         return next((d for d in self.devices if d.last_used), None)

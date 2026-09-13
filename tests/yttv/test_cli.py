@@ -237,3 +237,45 @@ def test_doctor_option_runs_the_doctor(stub: Stub, monkeypatch) -> None:
     assert code == 1 and out == "diagnosis\n"
     assert seen == {"timeout": 1.0, "local_address": None, "hosts": ["1.2.3.4"]}
     assert stub.calls == []
+
+
+def test_cast_option_probes_and_adds(stub: Stub, monkeypatch) -> None:
+    pytest.importorskip("pychromecast")
+    from yttv.backends import cast as cast_backend
+
+    monkeypatch.setattr(cast_backend, "probe", lambda host: cast_backend.Info("u1", "Samsung-TV", "U8000F", host))
+    added: list[tuple] = []
+
+    def add_device(backend, address, **data):
+        added.append((backend, address, data))
+        return Device(None, backend="cast", address=address, backend_data=data)
+
+    monkeypatch.setattr(cli.api, "add_device", add_device)
+    code, out, _ = run(["--cast", "192.168.178.69", "dQw4w9WgXcQ"])
+    assert code == 0
+    assert added == [("cast", "192.168.178.69", {"cast_uuid": "u1", "friendly_name": "Samsung-TV", "model": "U8000F"})]
+    assert out.splitlines()[0] == "Samsung-TV (U8000F) at 192.168.178.69 added."
+    assert stub.calls[0][0] == "cast" and stub.calls[0][3].address == "192.168.178.69"
+
+
+def test_cast_option_with_device_attaches_instead(stub: Stub, monkeypatch) -> None:
+    pytest.importorskip("pychromecast")
+    from yttv.backends import cast as cast_backend
+
+    monkeypatch.setattr(cast_backend, "probe", lambda host: cast_backend.Info("u1", "Samsung-TV", "U8000F", host))
+    attached: list[tuple] = []
+    monkeypatch.setattr(cli.api, "attach", lambda device, backend, address, **d: attached.append((device, backend, address)) or BEDROOM)
+    code, out, _ = run(["-d", "bed", "--cast", "192.168.178.69"])
+    assert code == 0 and attached == [("bed", "cast", "192.168.178.69")] and stub.calls == []
+
+
+def test_cast_option_keeps_model_out_when_unknown(stub: Stub, monkeypatch) -> None:
+    pytest.importorskip("pychromecast")
+    from yttv.backends import cast as cast_backend
+
+    monkeypatch.setattr(cast_backend, "probe", lambda host: cast_backend.Info("u1", "Samsung-TV", "", host))
+    seen: list[dict] = []
+    monkeypatch.setattr(cli.api, "add_device", lambda backend, address, **d: seen.append(d) or Device(None, backend="cast", address=address, backend_data=d))
+    code, out, _ = run(["--cast", "192.168.178.69"])
+    assert code == 0 and seen == [{"cast_uuid": "u1", "friendly_name": "Samsung-TV"}]
+    assert out == "Samsung-TV (Cast) at 192.168.178.69 added.\n"
