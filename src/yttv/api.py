@@ -20,7 +20,7 @@ from collections.abc import Sequence
 from ytlounge import Lounge, LoungeError, PairingError, Screen, SessionError, TokenError
 from ytlounge.video import Video, parse_video
 
-from .backends import get_launcher
+from .backends import KNOWN, BackendUnavailable, get_launcher
 from .cache import Cache, CacheError, Device
 
 log = logging.getLogger(__name__)
@@ -158,7 +158,10 @@ def cast(
     lounge = lounge or Lounge(name=remote_name())
     try:
         screen = _fresh_screen(lounge, cache, target)
-        launcher = get_launcher(target.backend)
+        try:
+            launcher = get_launcher(target.backend)
+        except BackendUnavailable as exc:
+            raise CastError(str(exc)) from exc
         if launcher is not None:
             try:
                 launcher.launch(target, timeout=timeout)
@@ -225,3 +228,27 @@ def pair(
     cache.set_last_used(device)
     cache.save()
     return device
+
+
+def attach(
+    device: Device | str | None,
+    backend: str,
+    address: str,
+    *,
+    cache: Cache | None = None,
+    **backend_data: object,
+) -> Device:
+    """Record how to reach a screen: which backend and at what address.
+
+    ``device`` selects like in :func:`cast`. Backend-specific pairing (a
+    Companion PIN, say) is the backend's business and must happen before.
+    """
+    if backend not in KNOWN:
+        raise YttvError(f"Unknown backend {backend!r}; one of {', '.join(KNOWN)}.")
+    cache = _open_cache(cache)
+    target = _select(cache, device)
+    target.backend = backend
+    target.address = address
+    target.backend_data.update(backend_data)
+    cache.save()
+    return target

@@ -153,3 +153,43 @@ def test_format_device_marks_last_used_and_expiry() -> None:
     assert "token until 2096-" in line
     line = cli.format_device(BEDROOM, now_ms=FAR_FUTURE)
     assert line.startswith("  Bedroom") and line.endswith("token expired")
+
+
+def test_appletv_option_pairs_then_attaches(stub: Stub, monkeypatch) -> None:
+    pytest.importorskip("pyatv")
+    from yttv.backends import appletv
+
+    monkeypatch.setattr(appletv, "ensure_paired", lambda host, ask: "Wohnzimmer")
+    attached: list[tuple] = []
+
+    def attach(device, backend, address, **data):
+        attached.append((device, backend, address, data))
+        return BEDROOM
+
+    monkeypatch.setattr(cli.api, "attach", attach)
+    code, out, _ = run(["-d", "bed", "--appletv", "192.168.178.27", "dQw4w9WgXcQ"])
+    assert code == 0
+    assert attached == [("bed", "appletv", "192.168.178.27", {"apple_name": "Wohnzimmer"})]
+    assert out.splitlines()[0] == "Bedroom is reached through Wohnzimmer at 192.168.178.27."
+    assert stub.calls == [("cast", ["dQw4w9WgXcQ"], False, BEDROOM)]
+
+
+def test_appletv_option_alone_only_attaches(stub: Stub, monkeypatch) -> None:
+    pytest.importorskip("pyatv")
+    from yttv.backends import appletv
+
+    monkeypatch.setattr(appletv, "ensure_paired", lambda host, ask: "Wohnzimmer")
+    monkeypatch.setattr(cli.api, "attach", lambda device, backend, address, **d: BEDROOM)
+    code, out, _ = run(["--appletv", "192.168.178.27"])
+    assert code == 0 and stub.calls == []
+
+
+def test_appletv_option_reports_pairing_failure(stub: Stub, monkeypatch) -> None:
+    pytest.importorskip("pyatv")
+    from yttv.backends import appletv
+
+    def fail(host, ask):
+        raise appletv.AppleTVError("no Apple TV answered at 1.2.3.4")
+
+    monkeypatch.setattr(appletv, "ensure_paired", fail)
+    assert cli.main(["--appletv", "1.2.3.4"]) == 1

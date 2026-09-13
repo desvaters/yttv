@@ -54,6 +54,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="link a screen with the code from Settings > Link with TV code, then use it",
     )
     parser.add_argument(
+        "--appletv",
+        metavar="HOST",
+        help="attach an Apple TV at HOST to the screen (pairs Companion with its PIN if needed), "
+        "so yttv can bring the YouTube app to the front before playing",
+    )
+    parser.add_argument(
         "-v",
         "--verbose",
         action="count",
@@ -100,6 +106,28 @@ def _list(out) -> int:
     return 0
 
 
+def _attach_appletv(host: str, device: Device | str | None, out) -> Device:
+    """Pair Companion if needed, then record the Apple TV on the screen."""
+    from .backends import BackendUnavailable, get_launcher
+
+    try:
+        get_launcher("appletv")
+    except BackendUnavailable as exc:
+        raise api.YttvError(str(exc)) from exc
+    from .backends import appletv
+
+    def ask_pin(name: str) -> str:
+        return input(f"PIN shown on {name}: ")
+
+    try:
+        name = appletv.ensure_paired(host, ask_pin)
+    except appletv.AppleTVError as exc:
+        raise api.CastError(f"Apple TV at {host}: {exc}") from exc
+    attached = api.attach(device, "appletv", host, apple_name=name)
+    print(f"{attached.label} is reached through {name} at {host}.", file=out)
+    return attached
+
+
 def run(argv: list[str], out=sys.stdout, err=sys.stderr) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -107,7 +135,7 @@ def run(argv: list[str], out=sys.stdout, err=sys.stderr) -> int:
 
     if args.list:
         return _list(out)
-    if not args.pair and not args.videos:
+    if not args.pair and not args.appletv and not args.videos:
         parser.print_usage(err)
         print("yttv: give a video to play, -l to list screens, or --pair CODE", file=err)
         return 2
@@ -117,8 +145,10 @@ def run(argv: list[str], out=sys.stdout, err=sys.stderr) -> int:
         paired = api.pair(args.pair)
         print(f"Paired with {paired.label}.", file=out)
         device = paired
-        if not args.videos:
-            return 0
+    if args.appletv:
+        device = _attach_appletv(args.appletv, device, out)
+    if not args.videos:
+        return 0
 
     used = api.cast(args.videos, queue=args.add, device=device)
     count = len(args.videos)

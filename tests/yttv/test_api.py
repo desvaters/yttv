@@ -268,3 +268,35 @@ def test_pair_reports_rejected_code(cache: Cache, lounge: Lounge) -> None:
 def test_errors_share_a_base_class() -> None:
     for cls in (yttv.NoDeviceError, yttv.InvalidVideoError, yttv.CastError, yttv.PairError):
         assert issubclass(cls, yttv.YttvError)
+
+
+# -- attach ---------------------------------------------------------------
+
+
+def test_attach_records_backend_and_address(cache: Cache) -> None:
+    device = yttv.attach("bed", "appletv", "192.168.178.27", cache=cache, apple_name="Wohnzimmer")
+    assert device.screen.screen_id == "screen-b"
+    reloaded = Cache(path=cache.path, ytcast_path=cache.ytcast_path)
+    reloaded.load()
+    found = reloaded.find("screen-b")
+    assert (found.backend, found.address) == ("appletv", "192.168.178.27")
+    assert found.backend_data == {"apple_name": "Wohnzimmer"}
+
+
+def test_attach_defaults_to_last_used_and_rejects_unknown_backend(cache: Cache) -> None:
+    assert yttv.attach(None, "dial", "10.0.0.1", cache=cache).screen.screen_id == "screen-a"
+    with pytest.raises(yttv.YttvError, match="Unknown backend"):
+        yttv.attach(None, "toaster", "10.0.0.1", cache=cache)
+
+
+def test_cast_reports_missing_backend_dependency(cache: Cache, lounge: Lounge, monkeypatch) -> None:
+    from yttv import api as api_module
+    from yttv.backends import BackendUnavailable
+
+    def unavailable(name):
+        raise BackendUnavailable("needs pyatv")
+
+    monkeypatch.setattr(api_module, "get_launcher", unavailable)
+    cache.devices[0].backend = "appletv"
+    with pytest.raises(yttv.CastError, match="needs pyatv"):
+        yttv.cast([ID1], cache=cache, lounge=lounge)
