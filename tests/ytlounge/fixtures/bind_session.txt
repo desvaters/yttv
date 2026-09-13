@@ -1,0 +1,8 @@
+1471
+[[0,["c","SIDSIDSIDSIDSIDS","",8]]
+,[1,["S","GSESSIONGSESSIONGSESSIONGSESSION"]]
+,[2,["loungeStatus",{"queueId": "QUEUEQUEUEQUEUEQUEUEQUEUEQUE", "devices": "[{\"app\": \"lb-v4\", \"capabilities\": \"dsp,dpa,mic,ntb,vsp,ads,asw,apw,pas,dcn,dcp,drq,sads,que,mus\", \"clientName\": \"tvhtml5\", \"experiments\": \"\", \"name\": \"YouTube on TV\", \"theme\": \"cl\", \"id\": \"00000000-0000-4000-8000-000000000001\", \"type\": \"LOUNGE_SCREEN\", \"hasCc\": \"true\", \"deviceInfo\": \"{\\\"brand\\\": \\\"Apple\\\", \\\"model\\\": \\\"AppleTV14-1\\\", \\\"year\\\": 2022, \\\"os\\\": \\\"AppleTV\\\", \\\"osVersion\\\": \\\"26.6\\\", \\\"chipset\\\": \\\"AppleA15Bionic\\\", \\\"clientName\\\": \\\"TVHTML5\\\", \\\"dialAdditionalDataSupportLevel\\\": \\\"full\\\", \\\"mdxDialServerType\\\": \\\"MDX_DIAL_SERVER_TYPE_IN_APP\\\"}\", \"receiverIdentityMatchStatus\": \"IS_RECEIVER\"}, {\"app\": \"youtube-desktop\", \"pairingType\": \"unknown\", \"capabilities\": \"que,mus\", \"clientName\": \"web\", \"experiments\": \"\", \"name\": \"test-remote\", \"theme\": \"cl\", \"id\": \"remote\", \"type\": \"REMOTE_CONTROL\", \"localChannelEncryptionKey\": \"KEYKEYKEYKEYKEYKEYKEYKEYKEYKEYKEYKEYKEYKEYK\", \"receiverIdentityMatchStatus\": \"DOES_NOT_MATCH_RECEIVER\"}]"}]]
+,[3,["playlistModified",{"videoIds":"jNQXAC9IVRw,aqz-KE-bpKQ"}]]
+,[4,["onAutoplayModeChanged",{"autoplayMode":"UNSUPPORTED"}]]
+,[5,["onPlaylistModeChanged",{"shuffleEnabled":"false","loopEnabled":"false"}]]
+]

@@ -11,4 +11,23 @@ extractable into its own distribution without any consumer changing an
 import.
 """
 
-__all__: list[str] = []
+from .client import Lounge, Session
+from .models import (
+    CommandError,
+    LoungeError,
+    PairingError,
+    Screen,
+    SessionError,
+    TokenError,
+)
+
+__all__ = [
+    "CommandError",
+    "Lounge",
+    "LoungeError",
+    "PairingError",
+    "Screen",
+    "Session",
+    "SessionError",
+    "TokenError",
+]
