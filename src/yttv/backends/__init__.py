@@ -17,8 +17,12 @@ if TYPE_CHECKING:
 
 KNOWN = ("appletv", "cast", "dial")
 
-# Per backend: the pip extra that provides it and the import it needs.
-_EXTRAS = {"appletv": ("appletv", "pyatv"), "cast": ("cast", "pychromecast")}
+# Per backend: the pip extra that provides it, the import it needs, and a
+# caveat worth stating in the error.
+_EXTRAS = {
+    "appletv": ("appletv", "pyatv", "; pyatv needs Python < 3.14"),
+    "cast": ("cast", "pychromecast", ""),
+}
 
 
 class BackendUnavailable(Exception):
@@ -54,9 +58,9 @@ def get_launcher(name: str | None) -> Launcher | None:
     try:
         importlib.import_module(f"{__name__}.{name}")
     except ImportError as exc:
-        extra, module = _EXTRAS.get(name, (name, name))
+        extra, module, caveat = _EXTRAS.get(name, (name, name, ""))
         raise BackendUnavailable(
             f"The {name} backend needs '{module}', which is not installed "
-            f"(pip install 'yttv[{extra}]'): {exc}"
+            f"(pip install 'yttv[{extra}]'{caveat}): {exc}"
         ) from exc
     return _LAUNCHERS.get(name)
