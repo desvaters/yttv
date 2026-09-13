@@ -1,0 +1,60 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "yttv"
+version = "0.1.0.dev0"
+description = "Play YouTube videos on a TV: Cast, Apple TV and DIAL devices, all driven through the YouTube Lounge API"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+authors = [{ name = "Maxi" }]
+keywords = ["youtube", "tv", "cast", "chromecast", "apple-tv", "dial", "lounge"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Environment :: Console",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Multimedia :: Video",
+]
+# httpx is the only mandatory runtime dependency (decision, see NOTES.md §9).
+# It always sends Content-Length, which the Lounge bind endpoint now requires.
+dependencies = ["httpx>=0.27"]
+
+[project.optional-dependencies]
+# Cast TVs (e.g. Samsung Tizen): discovery via mDNS and app launch through
+# pychromecast. Only the launch and screenId retrieval come from here; play and
+# queue always go through ytlounge.
+cast = ["pychromecast>=14"]
+# Apple TV: app launch through the Companion protocol. pyatv does not run on
+# Python 3.14 (asyncio.get_event_loop() raises), which is why this is an extra
+# and not a hard dependency: it must not cap the Python version of the core.
+appletv = ["pyatv>=0.18; python_version < '3.14'"]
+all = ["yttv[cast,appletv]"]
+
+[project.scripts]
+yttv = "yttv.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/desvaters/yttv"
+Issues = "https://github.com/desvaters/yttv/issues"
+
+# Two import packages ship in this one distribution. ytlounge is the protocol
+# core and is kept extractable: it must never import from yttv (enforced by
+# tests/test_boundary.py). Splitting it out later is a git mv plus a second
+# pyproject.toml, with no import path changing for consumers.
+[tool.hatch.build.targets.wheel]
+packages = ["src/ytlounge", "src/yttv"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+markers = [
+    "device: needs a real TV on the network (deselected by default in pixi tasks)",
+]

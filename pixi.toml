@@ -1,0 +1,52 @@
+[workspace]
+name = "yttv"
+channels = ["conda-forge"]
+platforms = ["linux-64"]
+
+# ---------------------------------------------------------------------------
+# Shared by every environment: the core's runtime dependency, the test
+# runner and the tasks. The Python version and the project install live in
+# the features below, because they differ between environments.
+# ---------------------------------------------------------------------------
+[dependencies]
+# The only runtime dependency of the core. Without it: ModuleNotFoundError
+# on `import ytlounge`.
+httpx = ">=0.27"
+# Test runner. Without it `pixi run test` fails with "pytest: command not found".
+pytest = ">=8"
+
+[tasks]
+# Unit and fixture tests only. Device tests are opt-in via `pixi run test-device`
+# because they need a TV on the network and would fail in any other setup.
+test = "pytest -m 'not device'"
+test-device = "pytest -m device"
+test-all = "pytest"
+
+# ---------------------------------------------------------------------------
+# backends: Python 3.13 with every backend extra. 3.13 and not 3.14 because
+# pyatv (Apple TV backend) breaks on 3.14, see NOTES.md §5. With 3.14 the
+# appletv extra would silently resolve to nothing (its marker excludes it)
+# and every Apple TV test would error with ModuleNotFoundError: pyatv.
+# ---------------------------------------------------------------------------
+[feature.backends.dependencies]
+python = "3.13.*"
+
+[feature.backends.pypi-dependencies]
+# The project itself, editable, with all backend extras. Editable so that
+# changes under src/ are visible without reinstalling; without this line
+# `import yttv` fails inside the environment.
+yttv = { path = ".", editable = true, extras = ["all"] }
+
+# ---------------------------------------------------------------------------
+# py314: the newest Python without any backend extra. Proves that ytlounge
+# and the yttv core do not depend on anything that caps the Python version.
+# ---------------------------------------------------------------------------
+[feature.py314.dependencies]
+python = "3.14.*"
+
+[feature.py314.pypi-dependencies]
+yttv = { path = ".", editable = true }
+
+[environments]
+default = { features = ["backends"] }
+core314 = { features = ["py314"] }
